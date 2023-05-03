@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.paint.Color?>
+<?import javafx.scene.paint.LinearGradient?>
+<?import javafx.scene.paint.Stop?>
+<?import javafx.scene.shape.Rectangle?>
+
+
+<AnchorPane prefHeight="1000.0" prefWidth="1600.0" xmlns="http://javafx.com/javafx/18" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.ChessGameController">
+   <children>
+      <Rectangle arcHeight="5.0" arcWidth="5.0" height="1010.0" layoutX="-4.0" layoutY="-7.0" stroke="BLACK" strokeType="INSIDE" width="1610.0">
+         <fill>
+            <LinearGradient cycleMethod="REPEAT" endX="1.0" endY="1.0">
+               <stops>
+                  <Stop>
+                     <color>
+                        <Color />
+                     </color>
+                  </Stop>
+                  <Stop offset="1.0">
+                     <color>
+                        <Color red="1.0" green="1.0" blue="1.0" />
+                     </color>
+                  </Stop>
+               </stops>
+            </LinearGradient>
+         </fill>
+      </Rectangle>
+      <Rectangle fx:id="gameRect" arcHeight="5.0" arcWidth="5.0" fill="#ffffff00" height="952.0" layoutX="50.0" layoutY="21.0" stroke="BLACK" strokeLineCap="ROUND" strokeType="OUTSIDE" strokeWidth="7.0" width="952.0" />
+      <ImageView fitHeight="952.0" fitWidth="952.0" layoutX="50.0" layoutY="21.0" pickOnBounds="true">
+         <image>
+            <Image url="@../images/ChessBoard.PNG" />
+         </image>
+      </ImageView>
+      <AnchorPane fx:id="gameAnchorPane" layoutX="50.0" layoutY="21.0" prefHeight="952.0" prefWidth="952.0" />
+   </children>
+</AnchorPane>
