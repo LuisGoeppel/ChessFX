@@ -136,7 +136,7 @@ public class ChessBoardMoveTest {
         chessBoard.movePiece(new Move("a1", "d1"));
         chessBoard.movePiece(new Move("h5", "f3"));
         List<String> moves = chessBoard.getMoves();
-        assertEquals("19. Rad1 Qxf3", moves.get(0));
+        assertEquals("19. Rad1 Qxf3", moves.get(0) + " " + moves.get(1));
     }
 
     @Test

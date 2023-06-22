@@ -86,4 +86,12 @@ public interface ChessBoardInterface {
      * @return if the move is a promotion
      */
     boolean isPromotionMove(Move move);
+
+    /**
+     * Returns the type of move on the current board
+     *
+     * @param move the move that will be made
+     * @return if the move was a check, capture, etc..
+     */
+    MoveType getMoveType(Move move);
 }

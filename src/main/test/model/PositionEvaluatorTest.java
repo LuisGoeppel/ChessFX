@@ -8,7 +8,7 @@ public class PositionEvaluatorTest {
     void test1() {
         ChessBoard chessBoard = new ChessBoard("r2q1rk1/pp3Npp/2p1bn2/2bp2B1/2B5/2PK4/P2N1PPP/R2Q3R b - - 0 13");
         PositionEvaluator evaluator = PositionEvaluator.getInstance();
-        System.out.println(evaluator.getEvaluation(chessBoard.getBoard()));
+        System.out.println(evaluator.getEvaluation(chessBoard));
     }
 
     @Test

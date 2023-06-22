@@ -7,6 +7,7 @@ import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,6 +26,10 @@ public class GUI extends Application {
         ChessGameController gameController = loader.getController();
         Scene gameScene = new Scene(root);
         gameController.init();
+
+        stage.setOnCloseRequest((WindowEvent event) -> {
+            gameController.closeStockfish();
+        });
 
         stage.setTitle("ChessFX");
         stage.getIcons().add(icon);

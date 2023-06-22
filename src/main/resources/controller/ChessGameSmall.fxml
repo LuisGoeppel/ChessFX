@@ -10,7 +10,6 @@
 <?import javafx.scene.paint.Stop?>
 <?import javafx.scene.shape.Rectangle?>
 
-
 <AnchorPane prefHeight="750.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/18" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.ChessGameController">
    <children>
       <Rectangle accessibleRole="BUTTON" arcHeight="5.0" arcWidth="5.0" height="750.0" stroke="BLACK" strokeType="INSIDE" width="1200.0">
@@ -38,7 +37,7 @@
          </image>
       </ImageView>
       <AnchorPane fx:id="gameAnchorPane" layoutX="60.0" layoutY="23.0" prefHeight="704.0" prefWidth="704.0" />
-      <Button fx:id="btn_copyFEN" layoutX="1101.0" layoutY="667.0" mnemonicParsing="false" onAction="#copyFENtoClipboard" prefHeight="60.0" prefWidth="60.0">
+      <Button fx:id="btn_copyFEN" layoutX="1110.0" layoutY="667.0" mnemonicParsing="false" onAction="#copyFENtoClipboard" prefHeight="60.0" prefWidth="60.0">
          <effect>
             <DropShadow />
          </effect>
@@ -50,14 +49,38 @@
             </ImageView>
          </graphic>
       </Button>
-      <Button fx:id="btn_newGame" layoutX="1016.0" layoutY="667.0" mnemonicParsing="false" onAction="#restartGame" prefHeight="60.0" prefWidth="60.0">
+      <Button fx:id="btn_newGame" layoutX="1115.0" layoutY="23.0" mnemonicParsing="false" onAction="#restartGame" prefHeight="60.0" prefWidth="60.0">
+         <effect>
+            <DropShadow />
+         </effect>
+         <graphic>
+            <ImageView fitHeight="40.0" fitWidth="40.0" pickOnBounds="true" preserveRatio="true">
+               <image>
+                  <Image url="@../icons/IconRepeat.png" />
+               </image>
+            </ImageView>
+         </graphic>
+      </Button>
+      <Button fx:id="btn_copyFEN1" layoutX="1028.0" layoutY="667.0" mnemonicParsing="false" onAction="#copyMovesToClipboard" prefHeight="60.0" prefWidth="60.0">
          <effect>
             <DropShadow />
          </effect>
          <graphic>
             <ImageView fitHeight="55.0" fitWidth="55.0" pickOnBounds="true" preserveRatio="true">
                <image>
-                  <Image url="@../icons/IconRepeat.png" />
+                  <Image url="@../icons/IconMove.png" />
+               </image>
+            </ImageView>
+         </graphic>
+      </Button>
+      <Button fx:id="btn_newGame1" layoutX="1034.0" layoutY="23.0" mnemonicParsing="false" onAction="#toggleSound" prefHeight="60.0" prefWidth="60.0">
+         <effect>
+            <DropShadow />
+         </effect>
+         <graphic>
+            <ImageView fx:id="soundImageView" fitHeight="40.0" fitWidth="40.0" pickOnBounds="true" preserveRatio="true">
+               <image>
+                  <Image url="@../icons/IconSoundOff.png" />
                </image>
             </ImageView>
          </graphic>

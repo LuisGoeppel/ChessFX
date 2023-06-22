@@ -15,19 +15,25 @@ import java.awt.datatransfer.StringSelection;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import model.*;
+import sounds.*;
 
+import java.io.IOException;
 import java.util.*;
 
 @SuppressWarnings("FieldCanBeLocal")
 public class ChessGameController {
 
     @FXML
-    Rectangle gameRect;
+    private Rectangle gameRect;
     @FXML
-    AnchorPane gameAnchorPane;
+    private AnchorPane gameAnchorPane;
+
+    @FXML
+    private ImageView soundImageView;
 
     private ChessBoard chessBoard;
     private ChessEngine chessEngine;
+    private Stockfish stockfish;
 
     private ImageView[][] squareImageViews;
     private ImageView mouseImage;
@@ -37,6 +43,8 @@ public class ChessGameController {
     private double mouseImageSize;
     private boolean promotionMode;
     private boolean playVsComputer;
+    private boolean useCustomEngine;
+    private boolean playSounds;
 
     private static final int BOARD_SIZE = 8;
     private static final double MOUSE_IMAGE_SCALE = 1.15;
@@ -45,12 +53,23 @@ public class ChessGameController {
     private static final double HIGHLIGHT_OPACITY_PROMOTION = 0.5;
     private static final int ENGINE_LEVEL = 3;
 
+    private static Sound gameStartsSound;
+    private static Sound moveSound;
+    private static Sound captureSound;
+    private static Sound checkSound;
+    private static Sound castleSound;
+    private static Sound gameOverSound;
+
     public void init() {
         chessBoard = new ChessBoard();
         chessEngine = new ChessEngine(ENGINE_LEVEL);
+        stockfish = new Stockfish();
         initPieceImages();
+        initializeSounds();
         promotionMode = false;
         playVsComputer = true;
+        useCustomEngine = false;
+        playSounds = false;
         squareSize = gameRect.getWidth() / (double) BOARD_SIZE;
         squareImageViews = new ImageView[BOARD_SIZE][BOARD_SIZE];
 
@@ -63,6 +82,20 @@ public class ChessGameController {
         createMouseEvents();
 
         gameAnchorPane.getChildren().add(mouseImage);
+
+        if (playVsComputer && chessBoard.getCurrentPlayer()
+                .equals(ChessPieceColor.BLACK)) {
+            makeEngineMove();
+        }
+
+        try {
+            stockfish.startEngine();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        if (playSounds) {
+            gameStartsSound.play();
+        }
     }
 
     private void createMouseEvents() {
@@ -108,11 +141,15 @@ public class ChessGameController {
                 if (chessBoard.isPromotionMove(new Move(from, to))) {
                     handlePromotion(mouseEvent);
                 } else {
+                    MoveType moveType = chessBoard.getMoveType(new Move(from, to));
                     if (chessBoard.movePiece(new Move(from, to))) {
                         gameAnchorPane.getChildren().removeIf(child -> child instanceof Rectangle);
                         highlightMove(from, to);
+                        playSound(moveType);
 
-                        makeEngineMove();
+                        if (playVsComputer) {
+                            makeEngineMove();
+                        }
                     }
                     updateBoard();
                     from = null;
@@ -216,14 +253,36 @@ public class ChessGameController {
 
     private void makeEngineMove() {
         Thread engineThread = new Thread(() -> {
-            Move move = chessEngine.getMove(chessBoard);
-
-            Platform.runLater(() -> chessBoard.movePiece(move));
+            Move move = new Move("a2", "a3");
+            if (useCustomEngine) {
+                List<String> previousMoves = chessBoard.getMoves();
+                move = chessEngine.getMove(chessBoard, previousMoves);
+            } else {
+                try {
+                    List<String> previousMoves = chessBoard.getMoves();
+                    move = stockfish.getMove(chessBoard, previousMoves);
+                } catch (IOException e) {
+                    System.out.println("Something went wrong with the engine");
+                }
+            }
+            Move finalMove = move;
+            MoveType moveType = chessBoard.getMoveType(move);
+            Platform.runLater(() -> chessBoard.movePiece(finalMove));
             Platform.runLater(() -> gameAnchorPane.getChildren().removeIf(child -> child instanceof Rectangle));
-            Platform.runLater(() -> highlightMove(move.from, move.to));
+            Platform.runLater(() -> highlightMove(finalMove.from, finalMove.to));
             Platform.runLater(this::updateBoard);
+            Platform.runLater(() -> playSound(moveType));
         });
         engineThread.start();
+    }
+
+    @FXML
+    public void closeStockfish() {
+        try {
+            stockfish.stopEngine();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void handlePromotion(MouseEvent mouseEvent) {
@@ -251,6 +310,9 @@ public class ChessGameController {
 
                 gameAnchorPane.getChildren().removeIf(child -> child instanceof Circle);
                 chessBoard.movePiece(new Move(from, to));
+                if (playVsComputer) {
+                    makeEngineMove();
+                }
                 updateBoard();
                 from = null;
                 to = null;
@@ -287,6 +349,54 @@ public class ChessGameController {
         }
     }
 
+    private void initializeSounds() {
+        String soundPath = "src/main/resources/sounds/";
+
+        gameStartsSound = new SoundEffect(soundPath + "GameStarts.wav");
+        gameOverSound = new SoundEffect(soundPath + "GameOver.wav");
+        captureSound = new SoundEffect(soundPath + "Capture.wav");
+        castleSound = new SoundEffect(soundPath + "Castle.wav");
+        checkSound = new SoundEffect(soundPath + "Check.wav");
+        moveSound = new SoundEffect(soundPath + "Move.wav");
+
+        moveSound.setVolume(0);
+        moveSound.play();
+        moveSound.setVolume(1);
+    }
+
+    private void playSound(MoveType moveType) {
+        if (playSounds) {
+            switch (moveType) {
+                case GAME_OVER:
+                    gameOverSound.play();
+                    break;
+                case CASTLE:
+                    castleSound.play();
+                    break;
+                case CAPTURE:
+                    captureSound.play();
+                    break;
+                case CHECK:
+                    checkSound.play();
+                    break;
+                default:
+                    moveSound.play();
+            }
+        }
+    }
+
+    @FXML
+    public void toggleSound() {
+        playSounds = !playSounds;
+
+        String directory = System.getProperty("user.dir") + "\\src\\main\\resources\\icons\\";
+        if (playSounds) {
+            soundImageView.setImage(new Image(directory + "IconSoundOn.png"));
+        } else {
+            soundImageView.setImage(new Image(directory + "IconSoundOff.png"));
+        }
+    }
+
     @FXML
     public void restartGame() {
         chessBoard = new ChessBoard();
@@ -304,6 +414,14 @@ public class ChessGameController {
     public void copyFENtoClipboard() {
         String boardFEN = chessBoard.getAsFEN();
         StringSelection selection = new StringSelection(boardFEN);
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        clipboard.setContents(selection, null);
+    }
+
+    @FXML
+    public void copyMovesToClipboard() {
+        String moves = String.join(" ", chessBoard.getMoves());
+        StringSelection selection = new StringSelection(moves);
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         clipboard.setContents(selection, null);
     }

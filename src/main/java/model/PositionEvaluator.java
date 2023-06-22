@@ -8,7 +8,7 @@ public class PositionEvaluator {
     private static PositionEvaluator positionEvaluator;
     private static final int BOARD_SIZE = 8;
 
-    private static final int valueFactor = 1;
+    private static final int valueFactor = 3;
     private static final int placementFactor = 1;
 
     public static final HashMap<ChessPieceType, Integer> pieceValues = new HashMap<>(Map.of(
@@ -17,7 +17,7 @@ public class PositionEvaluator {
             ChessPieceType.BISHOP, 300,
             ChessPieceType.ROOK, 500,
             ChessPieceType.QUEEN, 900,
-            ChessPieceType.KING, Integer.MAX_VALUE / 2
+            ChessPieceType.KING, Integer.MAX_VALUE / 10
     ));
 
     /*
@@ -74,13 +74,29 @@ public class PositionEvaluator {
         return positionEvaluator;
     }
 
-    public int getEvaluation(ChessPiece[][] board) {
+    public int getEvaluation(ChessBoard chessBoard) {
+        ChessPiece[][] board = chessBoard.getBoard();
         int pieceValueEval = getPieceValueEval(board, ChessPieceColor.WHITE)
                 - getPieceValueEval(board, ChessPieceColor.BLACK);
         int piecePlacementEval = getPiecePlacementEval(board, ChessPieceColor.WHITE)
                 - getPiecePlacementEval(board, ChessPieceColor.BLACK);
+        int winnerEval = getGameOverEval(chessBoard);
+        if (winnerEval == 0) {
+            return 0;
+        }
+        return pieceValueEval * valueFactor + piecePlacementEval * placementFactor + winnerEval;
+    }
 
-        return pieceValueEval * valueFactor + piecePlacementEval * placementFactor;
+    private int getGameOverEval(ChessBoard chessBoard) {
+        ChessWinner winner = chessBoard.getWinner();
+        if (winner.equals(ChessWinner.WHITE)) {
+            return Integer.MAX_VALUE / 10;
+        } else if (winner.equals(ChessWinner.BLACK)) {
+            return Integer.MIN_VALUE / 10;
+        } else if (winner.equals(ChessWinner.DRAW) || winner.equals(ChessWinner.STALEMATE)) {
+            return 0;
+        }
+        return -1;
     }
 
     private int getPieceValueEval(ChessPiece[][] board, ChessPieceColor player) {

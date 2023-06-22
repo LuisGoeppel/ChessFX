@@ -144,6 +144,32 @@ public class ChessBoard implements ChessBoardInterface {
         return true;
     }
 
+    @Override
+    public MoveType getMoveType(Move move) {
+        int xFrom = move.from.getAsCoordinates()[0];
+        int yFrom = move.from.getAsCoordinates()[1];
+        int xTo = move.to.getAsCoordinates()[0];
+        int yTo = move.to.getAsCoordinates()[1];
+
+        ChessBoard clonedBoard = clone();
+        clonedBoard.movePiece(move);
+
+        if (clonedBoard.isGameOver) {
+            return MoveType.GAME_OVER;
+        }
+        if (clonedBoard.isKingInCheck(ChessPieceColor.WHITE) || clonedBoard.isKingInCheck(ChessPieceColor.BLACK)) {
+            return MoveType.CHECK;
+        }
+        if (board[xFrom][yFrom].getPieceType().equals(ChessPieceType.KING) &&
+            Math.abs(xFrom - xTo) > 1) {
+            return MoveType.CASTLE;
+        }
+        if (board[xTo][yTo].hasPiece()) {
+            return MoveType.CAPTURE;
+        }
+        return MoveType.NORMAL;
+    }
+
     /** -------------------------------------- GET POSSIBLE MOVES ---------------------------------------- **/
     @Override
     public List<ChessPos> getPossibleMoves(ChessPos chessPos) {
@@ -469,6 +495,84 @@ public class ChessBoard implements ChessBoardInterface {
 
     /** ---------------------------------- CHECK IF MOVES ARE LEGAL ----------------------------------- **/
 
+    public Move getMoveFromString(String move) {
+        move = move.replaceAll("[x+#]", "");
+
+        //Normal pawn move
+        if (move.length() == 2) {
+            ChessPos to = new ChessPos(move);
+            int direction = currentPlayer.equals(ChessPieceColor.BLACK) ? 1 : -1;
+            if (board[to.getAsCoordinates()[0]][to.getAsCoordinates()[1] - direction].hasPiece()) {
+                ChessPos from = new ChessPos(to.getAsCoordinates()[0], to.getAsCoordinates()[1] - direction);
+                return new Move(from, to);
+            } else if (board[to.getAsCoordinates()[0]][to.getAsCoordinates()[1] - 2 * direction].hasPiece()) {
+                ChessPos from = new ChessPos(to.getAsCoordinates()[0], to.getAsCoordinates()[1] - 2 * direction);
+                return new Move(from, to);
+            }
+
+            //Castle Moves
+        } else if (move.equals("O-O")) {
+            int rank = currentPlayer.equals(ChessPieceColor.WHITE) ? 1 : 8;
+            return new Move("e" + rank, "g" + rank);
+        } else if (move.equals("O-O-O")) {
+            int rank = currentPlayer.equals(ChessPieceColor.WHITE) ? 1 : 8;
+            return new Move("e" + rank, "c" + rank);
+
+            //Promotion Input
+        } else if (move.contains("=")) {
+            String[] inputs = move.split("=");
+            int direction = currentPlayer.equals(ChessPieceColor.BLACK) ? 1 : -1;
+            ChessPieceType promoteTo = ChessPieceType.valueOf(ChessPieceType.getEnumByString(inputs[1]));
+            ChessPos from, to;
+            if (inputs[0].length() == 2) {
+                to = new ChessPos(inputs[0], promoteTo);
+                from = new ChessPos(to.getAsCoordinates()[0], to.getAsCoordinates()[1] - direction);
+            } else {
+                to = new ChessPos(inputs[0].substring(1), promoteTo);
+                char firstChar = inputs[0].charAt(0);
+                from = new ChessPos(to.getAsCoordinates()[0] + ((firstChar - 'a') - to.getColumn()),
+                        to.getAsCoordinates()[1] - direction);
+            }
+            return new Move(from, to);
+
+            //Default Piece Movement
+        } else {
+            char pieceChar = move.charAt(0);
+            ChessPos to = new ChessPos(move.substring(move.length() - 2));
+
+            if (Character.isLowerCase(pieceChar)) {
+                int directionY = currentPlayer.equals(ChessPieceColor.BLACK) ? 1 : -1;
+                ChessPos from = new ChessPos(pieceChar,8 - (to.getAsCoordinates()[1] - directionY));
+                return new Move(from, to);
+            } else {
+                ChessPieceType pieceType = ChessPieceType.valueOf(ChessPieceType.
+                        getEnumByString(Character.toString(pieceChar)));
+                List<ChessPos> from = searchPiece(new ChessPiece(pieceType, currentPlayer));
+                if (from.isEmpty()) {
+                    throw new IllegalArgumentException("Move " + move + "is not legal");
+                }
+                if (from.size() == 1) {
+                    return new Move(from.get(0), to);
+                } else {
+                    if (move.length() == 3) {
+                        if (inBetweenFieldsEmpty(new Move(from.get(0), to))) {
+                            return new Move(from.get(0), to);
+                        }
+                        return new Move(from.get(1), to);
+                    }
+                    char posDetail = move.charAt(1);
+                    if ((Character.isDigit(posDetail) && from.get(0).getAsCoordinates()[1] == posDetail - '0')
+                            || (posDetail - 'a' < 8 && from.get(0).getAsCoordinates()[0] == posDetail - 'a')) {
+                        return new Move(from.get(0), to);
+                    } else {
+                        return new Move(from.get(1), to);
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     private boolean executeMove(String move) {
         move = move.replaceAll("[x+#]", "");
 
@@ -614,8 +718,9 @@ public class ChessBoard implements ChessBoardInterface {
                         && (isCapture(move) || !board[xTo][yTo].hasPiece());
             case PAWN:
                 int colorFactor = chessPiece.getColor().equals(ChessPieceColor.WHITE) ? -1 : 1;
-                return Math.abs(xFrom - xTo) == 1 && yFrom + colorFactor == yTo
-                        && board[xTo][yTo].isEnemyColorTo(chessPiece.getColor());
+                return (Math.abs(xFrom - xTo) == 1 && yFrom + colorFactor == yTo
+                        && board[xTo][yTo].isEnemyColorTo(chessPiece.getColor())) ||
+                        (xFrom == xTo && yFrom + colorFactor == yTo && !board[xTo][yTo].hasPiece());
             default:
                 return false;
         }
@@ -814,12 +919,9 @@ public class ChessBoard implements ChessBoardInterface {
         }
 
         if (moveMadeBy.equals(ChessPieceColor.WHITE)) {
-            whiteMove = halfMoveNotation;
-            if (isGameOver) {
-                moves.add(completedMoves + ". " + whiteMove);
-            }
+            moves.add(completedMoves + ". " + halfMoveNotation);
         } else {
-            moves.add((completedMoves - 1) + ". " + whiteMove + " " + halfMoveNotation);
+            moves.add(halfMoveNotation);
         }
     }
 

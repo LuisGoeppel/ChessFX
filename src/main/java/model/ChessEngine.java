@@ -1,17 +1,24 @@
 package model;
 
+import javafx.util.Pair;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class ChessEngine {
     private int level;
-    private PositionEvaluator positionEvaluator;
+    private final PositionEvaluator positionEvaluator;
+    private final GameBase gameBase;
 
-    private static int MIN_LEVEL = 1;
-    private static int MAX_LEVEL = 6;
+    private static final int MIN_LEVEL = 1;
+    private static final int MAX_LEVEL = 6;
 
     public ChessEngine(int level) {
+        gameBase = new GameBase();
         positionEvaluator = PositionEvaluator.getInstance();
         if (level >= MIN_LEVEL && level <= MAX_LEVEL) {
             this.level = level;
@@ -28,36 +35,43 @@ public class ChessEngine {
         }
     }
 
-    public Move getMove(ChessBoard chessBoard) {
-        List<Move> possibleMoves = chessBoard.getPossibleMoves();
-        List<ChessBoard> possiblePositions = possibleMoves.parallelStream()
-                .map(move -> {
-                    ChessBoard newBoard = chessBoard.clone();
-                    newBoard.movePiece(move);
-                    return newBoard;
-                })
+    public Move getMove(ChessBoard chessBoard, List<String> previousMoves) {
+        List<String> previousMovesFiltered = previousMoves.stream()
+                .map(move -> move.replaceAll("^\\d{1,2}\\.\\s*", ""))
                 .collect(Collectors.toList());
+        List<Pair<String, Integer>> moves = gameBase.getMoves(previousMovesFiltered);
+        if (moves.isEmpty()) {
+            return getMove(chessBoard);
+        }
+        String nextMoveString = RandomProbabilitySelector.selectRandomItem(moves);
+        return chessBoard.getMoveFromString(nextMoveString);
+    }
 
+    public Move getMove(ChessBoard chessBoard) {
+
+        List<Move> possibleMoves = chessBoard.getPossibleMoves();
         int bestMoveIndex = -1;
         if (chessBoard.getCurrentPlayer().equals(ChessPieceColor.WHITE)) {
             int bestValue = Integer.MIN_VALUE;
-            for (int i = 0; i < possiblePositions.size(); i++) {
-                ChessBoard board = possiblePositions.get(i);
+            for (int i = 0; i < possibleMoves.size(); i++) {
+                Move move = possibleMoves.get(i);
+                ChessBoard board = chessBoard.clone();
+                board.movePiece(move);
                 int minimaxValue = minimax(board, level, false, Integer.MIN_VALUE, Integer.MAX_VALUE);
-                int evaluation = positionEvaluator.getEvaluation(board.getBoard()) + minimaxValue;
-                if (evaluation > bestValue) {
-                    bestValue = evaluation;
+                if (minimaxValue > bestValue) {
+                    bestValue = minimaxValue;
                     bestMoveIndex = i;
                 }
             }
         } else {
             int bestValue = Integer.MAX_VALUE;
-            for (int i = 0; i < possiblePositions.size(); i++) {
-                ChessBoard board = possiblePositions.get(i);
+            for (int i = 0; i < possibleMoves.size(); i++) {
+                Move move = possibleMoves.get(i);
+                ChessBoard board = chessBoard.clone();
+                board.movePiece(move);
                 int minimaxValue = minimax(board, level, true, Integer.MIN_VALUE, Integer.MAX_VALUE);
-                int evaluation = positionEvaluator.getEvaluation(board.getBoard()) + minimaxValue;
-                if (evaluation < bestValue) {
-                    bestValue = evaluation;
+                if (minimaxValue < bestValue) {
+                    bestValue = minimaxValue;
                     bestMoveIndex = i;
                 }
             }
@@ -68,7 +82,7 @@ public class ChessEngine {
     public int minimax(ChessBoard node, int depth, boolean isMaximizingPlayer, int alpha, int beta) {
 
         if (depth == 0) {
-            return positionEvaluator.getEvaluation(node.getBoard());
+            return positionEvaluator.getEvaluation(node);
         }
 
         //noinspection IfStatementWithIdenticalBranches
@@ -98,15 +112,13 @@ public class ChessEngine {
     }
 
     private List<ChessBoard> getChildNodes(ChessBoard parentNode) {
-        List<ChessBoard> childNodes = new ArrayList<>();
         List<Move> possibleMoves = parentNode.getPossibleMoves();
-        for (Move move : possibleMoves) {
-            ChessBoard newBoard = parentNode.clone();
-            newBoard.movePiece(move);
-            childNodes.add(newBoard);
-        }
-        return childNodes;
+        return possibleMoves.parallelStream()
+                .map(move -> {
+                    ChessBoard newBoard = parentNode.clone();
+                    newBoard.movePiece(move);
+                    return newBoard;
+                })
+                .collect(Collectors.toList());
     }
-
-
 }
