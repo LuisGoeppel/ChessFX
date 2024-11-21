@@ -109,7 +109,7 @@ public class ChessBoard implements ChessBoardInterface {
             } else {
                 board[xTo][yTo] = piece;
             }
-            if (move.to.equals(possibleEnPassant)) {
+            if (move.to.equals(possibleEnPassant) && piece.getPieceType().equals(ChessPieceType.PAWN)) {
                 int direction = currentPlayer.equals(ChessPieceColor.WHITE) ? 1: -1;
                 board[xTo][yTo + direction] = new ChessPiece();
             }
@@ -119,7 +119,7 @@ public class ChessBoard implements ChessBoardInterface {
             moveOptions.clear();
 
             if (!checkGameOver()) {
-                handleEnPassantOptions(piece, xTo, yTo);
+                handleEnPassantOptions(piece, xTo, yTo, yFrom);
                 handleCastleOptions(piece, move.from);
             }
 
@@ -132,12 +132,15 @@ public class ChessBoard implements ChessBoardInterface {
 
     @Override
     public boolean executeMoves(String moves) {
+        List<String> results = Arrays.asList("1-0", "1/2-1/2", "0-1", "*");
 
-        String[] movesAsString = moves.split(" ");
-        for (int i = 0; i < movesAsString.length; i++) {
-            if (i % 3 != 0) {
-                if (!executeMove(movesAsString[i])) {
-                    throw new IllegalArgumentException("Move " + movesAsString[i] + " could not be processed!");
+        String[] movesAsString = moves.split("[ \\n]+");
+        for (String s : movesAsString) {
+            String cleanedMove = s.replaceAll("^\\d+\\.", "");
+
+            if (!cleanedMove.isEmpty() && !results.contains(cleanedMove)) {
+                if (!executeMove(cleanedMove)) {
+                    throw new IllegalArgumentException("Move " + s + " could not be processed!");
                 }
             }
         }
@@ -213,6 +216,10 @@ public class ChessBoard implements ChessBoardInterface {
             ChessBoard clonedBoard = new ChessBoard(getAsFEN());
             clonedBoard.board[xCord][yCord] = new ChessPiece(ChessPieceType.EMPTY, ChessPieceColor.EMPTY);
             clonedBoard.board[pos.getAsCoordinates()[0]][pos.getAsCoordinates()[1]] = piece;
+            if (pos.equals(clonedBoard.possibleEnPassant)) {
+                int direction = clonedBoard.currentPlayer == ChessPieceColor.WHITE ? 1 : -1;
+                clonedBoard.board[pos.getAsCoordinates()[0]][pos.getAsCoordinates()[1] + direction] = new ChessPiece(ChessPieceType.EMPTY, ChessPieceColor.EMPTY);
+            }
             if (!clonedBoard.isKingInCheck(piece.getColor())) {
                 possibleMovesUpdated.add(pos);
             }
@@ -573,7 +580,7 @@ public class ChessBoard implements ChessBoardInterface {
         return null;
     }
 
-    private boolean executeMove(String move) {
+    public boolean executeMove(String move) {
         move = move.replaceAll("[x+#]", "");
 
         //Normal pawn move
@@ -629,20 +636,26 @@ public class ChessBoard implements ChessBoardInterface {
                         getEnumByString(Character.toString(pieceChar)));
                 List<ChessPos> from = searchPiece(new ChessPiece(pieceType, currentPlayer));
                 if (from.isEmpty()) {
-                    throw new IllegalArgumentException("Move " + move + "is not legal");
+                    throw new IllegalArgumentException("Move " + move + " is not legal");
                 }
                 if (from.size() == 1) {
                     return movePiece(new Move(from.get(0), to));
                 } else {
                     if (move.length() == 3) {
-                        return movePiece(new Move(from.get(0), to)) || movePiece(new Move(from.get(1), to));
+                        for (ChessPos pos : from) {
+                            boolean movePassed = movePiece(new Move(pos, to));
+                            if (movePassed) {
+                                return true;
+                            }
+                        }
+                        return false;
                     }
-                    char posDetail = move.charAt(1);
-                    if ((Character.isDigit(posDetail) && from.get(0).getAsCoordinates()[1] == posDetail - '0')
-                            || (posDetail - 'a' < 8 && from.get(0).getAsCoordinates()[0] == posDetail - 'a')) {
-                        return movePiece(new Move(from.get(0), to));
-                    } else {
-                        return movePiece(new Move(from.get(1), to));
+                    String posDetail = move.substring(1, move.length() - 2);
+
+                    for (ChessPos pos : from) {
+                        if(pos.toString().contains(posDetail)) {
+                            return movePiece(new Move(pos, to));
+                        }
                     }
                 }
             }
@@ -934,7 +947,7 @@ public class ChessBoard implements ChessBoardInterface {
         }
         if (!board[xFrom][yFrom].getPieceType().equals(ChessPieceType.PAWN) && !board[xTo][yTo].hasPiece()) {
             halfMovesSinceLastPawnPushOrCapture++;
-            if (halfMovesSinceLastPawnPushOrCapture >= 50) {
+            if (halfMovesSinceLastPawnPushOrCapture >= 100) {
                 winner = ChessWinner.DRAW;
                 isGameOver = true;
             }
@@ -943,11 +956,11 @@ public class ChessBoard implements ChessBoardInterface {
         }
     }
 
-    private void handleEnPassantOptions(ChessPiece piece, int xTo, int yTo) {
+    private void handleEnPassantOptions(ChessPiece piece, int xTo, int yTo, int yFrom) {
         possibleEnPassant = null;
         if (piece.getPieceType().equals(ChessPieceType.PAWN)) {
             int rank = piece.getColor().equals(ChessPieceColor.BLACK) ? 3 : 4;
-            if (yTo == rank
+            if (yTo == rank && Math.abs(yFrom - yTo) > 1
                     && ((xTo - 1 >= 0 && board[xTo - 1][yTo].isEnemyColorTo(piece.getColor())
                     && board[xTo - 1][yTo].getPieceType().equals(ChessPieceType.PAWN))
                     || (xTo + 1 < BOARD_SIZE && board[xTo + 1][yTo].isEnemyColorTo(piece.getColor())
