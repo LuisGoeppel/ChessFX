@@ -11,7 +11,7 @@ import java.util.List;
 
 public class StandardPositionEvaluation {
 
-    private static final List<String> gamePaths = Arrays.asList(
+    /*private static final List<String> gamePaths = Arrays.asList(
             "src/main/resources/grandmasterGames/Adams.txt",
             "src/main/resources/grandmasterGames/Alekhine.txt",
             "src/main/resources/grandmasterGames/Anand.txt",
@@ -21,6 +21,10 @@ public class StandardPositionEvaluation {
             "src/main/resources/grandmasterGames/Kosteniuk.txt",
             "src/main/resources/grandmasterGames/Morozevich.txt",
             "src/main/resources/grandmasterGames/Shirov.txt"
+    );*/
+
+    private static final List<String> gamePaths = Arrays.asList(
+            "src/main/resources/otherGames/xFeralago.txt"
     );
 
     private static final List<String> results = Arrays.asList("1-0", "1/2-1/2", "0-1");
