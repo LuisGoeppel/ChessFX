@@ -51,6 +51,13 @@ public class PositionEvaluator {
     @SuppressWarnings("FieldCanBeLocal")
     private static Character[][] knightMapB, bishopMapB, pawnMapB, kingMapB, queenMapB, rookMapB;
 
+    public static void main(String[] args) {
+        String fen = "8/3p4/8/8/8/8/8/8 w - - 0 1";
+        PositionEvaluator p = PositionEvaluator.getInstance();
+        ChessBoard b = new ChessBoard(fen);
+        System.out.println(p.getEvaluation(b));
+    }
+
     private PositionEvaluator() {
         kingMapW = getPieceMap(kingSquares);
         queenMapW = getPieceMap(queenSquares);
@@ -84,7 +91,8 @@ public class PositionEvaluator {
         if (winnerEval == 0) {
             return 0;
         }
-        return pieceValueEval * valueFactor + piecePlacementEval * placementFactor + winnerEval;
+        //return pieceValueEval * valueFactor + piecePlacementEval * placementFactor + winnerEval;
+        return placementFactor * piecePlacementEval;
     }
 
     private int getGameOverEval(ChessBoard chessBoard) {

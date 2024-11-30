@@ -34,6 +34,7 @@ public class ChessGameController {
     private ChessBoard chessBoard;
     private ChessEngine chessEngine;
     private Stockfish stockfish;
+    private CEngine cEngine;
 
     private ImageView[][] squareImageViews;
     private ImageView mouseImage;
@@ -64,6 +65,8 @@ public class ChessGameController {
         chessBoard = new ChessBoard();
         chessEngine = new ChessEngine(ENGINE_LEVEL);
         stockfish = new Stockfish();
+        cEngine = new CEngine();
+
         initPieceImages();
         initializeSounds();
         promotionMode = false;
@@ -89,7 +92,7 @@ public class ChessGameController {
         }
 
         try {
-            stockfish.startEngine();
+            cEngine.startEngine();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -260,7 +263,7 @@ public class ChessGameController {
             } else {
                 try {
                     List<String> previousMoves = chessBoard.getMoves();
-                    move = stockfish.getMove(chessBoard, previousMoves);
+                    move = cEngine.getMove(chessBoard, previousMoves);
                 } catch (IOException e) {
                     System.out.println("Something went wrong with the engine");
                 }
@@ -280,6 +283,7 @@ public class ChessGameController {
     public void closeStockfish() {
         try {
             stockfish.stopEngine();
+            cEngine.stopEngine();;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
